@@ -7,6 +7,7 @@ Created on Wed Nov 30 15:12:25 2022
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
+from datetime import date
 
 
 import tweepy
@@ -39,7 +40,6 @@ accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
 
-
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
@@ -48,8 +48,11 @@ api = tweepy.API(auth)
 keyword = "mango"
 #quantity of tweets to input
 countTweet = 2
-#YYYY- MM-DD
-dateuntil = "2022-12-02"
+
+today = date.today()
+#YYYY- MM-DD - use current date to extract tweet
+dateuntil = today.strftime("%Y-%m-%d")
+print(dateuntil)
 #Fetch tweets, you need elevated access for this
 #Filtering retweets, searching by keywords, only English tw
 tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until=dateuntil, tweet_mode = 'extended').items(countTweet)
