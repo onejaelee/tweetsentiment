@@ -8,7 +8,7 @@ Created on Wed Nov 30 15:12:25 2022
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
 from datetime import date
-
+import pandas as pd
 
 import tweepy
 
@@ -40,6 +40,11 @@ accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
 
+APIKey = "m4EVuFXztO22BWnUpNoQ6Msim"
+APISecret = "dAcvWaheGdNLcQwK3J5l0cuzg7CP2JQ3UU4YhhfnpUniZC6w8A"
+accessToken = "1598119930548789248-qbjOBk3bETYl20kvyAEQRNZe0uR9De"
+accessTokenSecret = "E2B0YNY9qZZ0hw1P8xyQCzdfksVTUu5605G99ruZDmpGx"
+
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
@@ -60,11 +65,21 @@ tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang
 #iterate through tweets and print
 count = 0
 
+data = {"Negative":[0], "Neutral":[0],"Positive":[0],"TweetCount":[0]}
 for tweet in tweets:
-    print(tweet.full_text)
+    #print(tweet.full_text)
     encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
     output = model(**encodedtw)
     scores = output[0][0].detach().numpy()
     scores = softmax(scores)
     print(scores)
+    #Add probability scores to corresponding column
+    data["Negative"] += scores[0]
+    data["Neutral"] += scores[1]
+    data["Positive"] += scores[2]
+    count += 1
+        
     print(tweet.full_text)
+data["TweetCount"] = count
+df = pd.DataFrame(data, index = [dateuntil])
+print(df)
