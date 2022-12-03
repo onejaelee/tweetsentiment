@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
 from datetime import date
 import pandas as pd
-
+from os.path import exists
 import tweepy
 
 #Loading roberta model and tokenizer
@@ -40,10 +40,6 @@ accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
 
-APIKey = "m4EVuFXztO22BWnUpNoQ6Msim"
-APISecret = "dAcvWaheGdNLcQwK3J5l0cuzg7CP2JQ3UU4YhhfnpUniZC6w8A"
-accessToken = "1598119930548789248-qbjOBk3bETYl20kvyAEQRNZe0uR9De"
-accessTokenSecret = "E2B0YNY9qZZ0hw1P8xyQCzdfksVTUu5605G99ruZDmpGx"
 
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
@@ -55,8 +51,11 @@ keyword = "mango"
 countTweet = 2
 
 today = date.today()
+
 #YYYY- MM-DD - use current date to extract tweet
-dateuntil = today.strftime("%Y-%m-%d")
+#dateuntil = today.strftime("%Y-%m-%d")
+
+dateuntil = "2022-12-01"
 print(dateuntil)
 #Fetch tweets, you need elevated access for this
 #Filtering retweets, searching by keywords, only English tw
@@ -65,7 +64,7 @@ tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang
 #iterate through tweets and print
 count = 0
 
-data = {"Negative":[0], "Neutral":[0],"Positive":[0],"TweetCount":[0]}
+data = {"Negative":0, "Neutral":0,"Positive":0,"TweetCount":0}
 for tweet in tweets:
     #print(tweet.full_text)
     encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
@@ -81,5 +80,11 @@ for tweet in tweets:
         
     print(tweet.full_text)
 data["TweetCount"] = count
-df = pd.DataFrame(data, index = [dateuntil])
+
+if exists(keyword + "sentiment.pkl"):
+    df = pd.read_pickle(keyword + "sentiment.pkl")
+    df.loc[dateuntil] = data
+else:
+    df = pd.DataFrame(data, index = [dateuntil])
+df.to_pickle(keyword + "sentiment.pkl")  
 print(df)
