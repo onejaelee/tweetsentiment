@@ -22,10 +22,11 @@ labels = ['Negative', 'Neutral', "Positive"]
 def preprocessTw(tweet):
     proctweet = []
     for word in tweet.split(' '):
-        if word[0] == '@' and len(word) > 1:
-            word = "@user"
-        elif word.startswith('http'):
-            word = "http"
+        if len(word) > 0:
+            if word[0] == '@' and len(word) > 1:
+                word = "@user"
+            elif word.startswith('http'):
+                word = "http"
         proctweet.append(word)
     tweetproc = " ".join(proctweet)
     return tweetproc
@@ -37,10 +38,7 @@ APISecret = "consumersecret"
 accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
-APIKey = "m4EVuFXztO22BWnUpNoQ6Msim"
-APISecret = "dAcvWaheGdNLcQwK3J5l0cuzg7CP2JQ3UU4YhhfnpUniZC6w8A"
-accessToken = "1598119930548789248-qbjOBk3bETYl20kvyAEQRNZe0uR9De"
-accessTokenSecret = "E2B0YNY9qZZ0hw1P8xyQCzdfksVTUu5605G99ruZDmpGx"
+
 
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
@@ -50,13 +48,17 @@ api = tweepy.API(auth)
 keyword = "mango"
 #quantity of tweets to input
 countTweet = 2
-
+#YYYY- MM-DD
+dateuntil = "2022-12-02"
 #Fetch tweets, you need elevated access for this
 #Filtering retweets, searching by keywords, only English tw
-tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en", tweet_mode = 'extended').items(countTweet)
+tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until=dateuntil, tweet_mode = 'extended').items(countTweet)
 
 #iterate through tweets and print
+count = 0
+
 for tweet in tweets:
+    print(tweet.full_text)
     encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
     output = model(**encodedtw)
     scores = output[0][0].detach().numpy()
