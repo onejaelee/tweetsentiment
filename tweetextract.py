@@ -53,9 +53,11 @@ countTweet = 2
 today = date.today()
 
 #YYYY- MM-DD - use current date to extract tweet
-#dateuntil = today.strftime("%Y-%m-%d")
+dateuntil = today.strftime("%Y-%m-%d")
 
-dateuntil = "2022-12-01"
+date_read = False
+
+#dateuntil = "2022-12-01"
 print(dateuntil)
 #Fetch tweets, you need elevated access for this
 #Filtering retweets, searching by keywords, only English tw
@@ -65,26 +67,29 @@ tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang
 count = 0
 
 data = {"Negative":0, "Neutral":0,"Positive":0,"TweetCount":0}
-for tweet in tweets:
-    #print(tweet.full_text)
-    encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
-    output = model(**encodedtw)
-    scores = output[0][0].detach().numpy()
-    scores = softmax(scores)
-    print(scores)
-    #Add probability scores to corresponding column
-    data["Negative"] += scores[0]
-    data["Neutral"] += scores[1]
-    data["Positive"] += scores[2]
-    count += 1
-        
-    print(tweet.full_text)
-data["TweetCount"] = count
 
 if exists(keyword + "sentiment.pkl"):
     df = pd.read_pickle(keyword + "sentiment.pkl")
-    df.loc[dateuntil] = data
+    if dateuntil not in df:
+        for tweet in tweets:
+            #print(tweet.full_text)
+            encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
+            output = model(**encodedtw)
+            scores = output[0][0].detach().numpy()
+            scores = softmax(scores)
+            print(scores)
+            #Add probability scores to corresponding column
+            data["Negative"] += scores[0]
+            data["Neutral"] += scores[1]
+            data["Positive"] += scores[2]
+            count += 1
+                
+            print(tweet.full_text)
+        data["TweetCount"] = count    
+        df.loc[dateuntil] = data
+        df.to_pickle(keyword + "sentiment.pkl")
+        print(df)
 else:
     df = pd.DataFrame(data, index = [dateuntil])
-df.to_pickle(keyword + "sentiment.pkl")  
-print(df)
+    df.to_pickle(keyword + "sentiment.pkl")
+    print(df)
