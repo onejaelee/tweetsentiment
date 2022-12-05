@@ -88,14 +88,15 @@ if exists(keyword + "sentiment.pkl"):
     df = pd.read_pickle(keyword + "sentiment.pkl")
     if dateuntil not in df:
         data = processTweet(tweets)
-        #data["TweetCount"] = count    
-        #df.loc[dateuntil] = data
-        
         df_today = pd.DataFrame(data)
+        df_today = df_today.set_index("id")
+        
+        df = df.append(df_today)
         df.to_pickle(keyword + "sentiment.pkl")
         print(df)
 else:
     data = processTweet(tweets)
-    df = pd.DataFrame(data, index = [dateuntil])
+    df = pd.DataFrame(data)
+    df = df.set_index("id")
     df.to_pickle(keyword + "sentiment.pkl")
     print(df)
