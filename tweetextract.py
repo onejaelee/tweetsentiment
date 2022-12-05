@@ -32,13 +32,29 @@ def preprocessTw(tweet):
     tweetproc = " ".join(proctweet)
     return tweetproc
 
-
+def processTweet(tweets):
+    data = {"Negative":[], "Neutral":[],"Positive":[],"id":[],"created_at":[]}
+    for tweet in tweets:
+        #print(tweet.full_text)
+        encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
+        output = model(**encodedtw)
+        scores = output[0][0].detach().numpy()
+        scores = softmax(scores)
+        print(scores)
+        #Add probability scores to corresponding column
+        data["Negative"].append(scores[0])
+        data["Neutral"].append(scores[1])
+        data["Positive"].append(scores[2])
+        
+        data["id"].append(tweet.id)
+        data["created_at"].append(tweet.created_at)
+    return data
+            
 #Initialize keys from your Twitter Dev Account
 APIKey = "consumerkey"
 APISecret = "consumersecret"
 accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
-
 
 
 auth = tweepy.OAuthHandler(APIKey, APISecret)
@@ -66,30 +82,20 @@ tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang
 #iterate through tweets and print
 count = 0
 
-data = {"Negative":0, "Neutral":0,"Positive":0,"TweetCount":0}
+
 
 if exists(keyword + "sentiment.pkl"):
     df = pd.read_pickle(keyword + "sentiment.pkl")
     if dateuntil not in df:
-        for tweet in tweets:
-            #print(tweet.full_text)
-            encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
-            output = model(**encodedtw)
-            scores = output[0][0].detach().numpy()
-            scores = softmax(scores)
-            print(scores)
-            #Add probability scores to corresponding column
-            data["Negative"] += scores[0]
-            data["Neutral"] += scores[1]
-            data["Positive"] += scores[2]
-            count += 1
-                
-            print(tweet.full_text)
-        data["TweetCount"] = count    
-        df.loc[dateuntil] = data
+        data = processTweet(tweets)
+        #data["TweetCount"] = count    
+        #df.loc[dateuntil] = data
+        
+        df_today = pd.DataFrame(data)
         df.to_pickle(keyword + "sentiment.pkl")
         print(df)
 else:
+    data = processTweet(tweets)
     df = pd.DataFrame(data, index = [dateuntil])
     df.to_pickle(keyword + "sentiment.pkl")
     print(df)
