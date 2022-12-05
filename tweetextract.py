@@ -7,7 +7,6 @@ Created on Wed Nov 30 15:12:25 2022
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
-from datetime import date
 import pandas as pd
 from os.path import exists
 import tweepy
@@ -19,6 +18,21 @@ model = AutoModelForSequenceClassification.from_pretrained(roberta)
 tokenizer = AutoTokenizer.from_pretrained(roberta)
 
 labels = ['Negative', 'Neutral', "Positive"]
+
+#Initialize keys from your Twitter Dev Account
+APIKey = "consumerkey"
+APISecret = "consumersecret"
+accessToken = "accesstoken"
+accessTokenSecret = "accesstokensecret"
+
+auth = tweepy.OAuthHandler(APIKey, APISecret)
+auth.set_access_token(accessToken, accessTokenSecret)
+api = tweepy.API(auth)
+
+#Keyword or hashtag to search
+keyword = "mango"
+#quantity of tweets to input
+countTweet = 2
 
 def preprocessTw(tweet):
     proctweet = []
@@ -49,21 +63,6 @@ def processTweet(tweets):
         data["id"].append(tweet.id)
         data["created_at"].append(tweet.created_at)
     return data
-            
-#Initialize keys from your Twitter Dev Account
-APIKey = "consumerkey"
-APISecret = "consumersecret"
-accessToken = "accesstoken"
-accessTokenSecret = "accesstokensecret"
-
-auth = tweepy.OAuthHandler(APIKey, APISecret)
-auth.set_access_token(accessToken, accessTokenSecret)
-api = tweepy.API(auth)
-
-#Keyword or hashtag to search
-keyword = "mango"
-#quantity of tweets to input
-countTweet = 2
 
 
 
