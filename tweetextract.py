@@ -11,6 +11,8 @@ import pandas as pd
 from os.path import exists
 import tweepy
 
+from datetime import date
+
 #Loading roberta model and tokenizer
 roberta = "cardiffnlp/twitter-roberta-base-sentiment"
 
@@ -25,13 +27,20 @@ APISecret = "consumersecret"
 accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
+
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
 
+today = date.today()
+
+#YYYY- MM-DD - use current date to extract tweet
+dateuntil = today.strftime("%Y-%m-%d")
 #Keyword or hashtag to search
 keyword = "mango"
-#quantity of tweets to input
+
+
+#quantity of tweets to input PER DAY
 countTweet = 2
 
 def preprocessTw(tweet):
@@ -72,16 +81,17 @@ def processTweet(tweets):
 if exists(keyword + "sentiment.pkl"):
     df = pd.read_pickle(keyword + "sentiment.pkl")
     last_id = max(df.index)
-    
-    tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",since_id = last_id, tweet_mode = 'extended').items(countTweet)
-    
-    data = processTweet(tweets)
-    df_today = pd.DataFrame(data)
-    df_today = df_today.set_index("id")
-    
-    df = df.append(df_today)
-    df.to_pickle(keyword + "sentiment.pkl")
-    print(df)
+    #last_time = max(df.created_at)
+    if max(df.created_at.dt.date)  < today:
+        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",since_id = last_id, tweet_mode = 'extended').items(countTweet)
+        
+        data = processTweet(tweets)
+        df_today = pd.DataFrame(data)
+        df_today = df_today.set_index("id")
+        
+        df = df.append(df_today)
+        df.to_pickle(keyword + "sentiment.pkl")
+        print(df)
 else:
     tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en", tweet_mode = 'extended').items(countTweet)
     data = processTweet(tweets)
