@@ -12,6 +12,7 @@ from os.path import exists
 import tweepy
 
 from datetime import date
+from datetime import timedelta
 
 #Loading roberta model and tokenizer
 roberta = "cardiffnlp/twitter-roberta-base-sentiment"
@@ -81,9 +82,13 @@ def processTweet(tweets):
 if exists(keyword + "sentiment.pkl"):
     df = pd.read_pickle(keyword + "sentiment.pkl")
     last_id = max(df.index)
+    prev_last_date = max(df.created_at.dt.date)
+    
+    curr_date = prev_last_date
     #last_time = max(df.created_at)
-    if max(df.created_at.dt.date)  < today:
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",since_id = last_id, tweet_mode = 'extended').items(countTweet)
+    while (curr_date <= today):
+        dateuntil = curr_date.strftime("%Y-%m-%d")
+        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
         
         data = processTweet(tweets)
         df_today = pd.DataFrame(data)
@@ -91,6 +96,8 @@ if exists(keyword + "sentiment.pkl"):
         
         df = df.append(df_today)
         df.to_pickle(keyword + "sentiment.pkl")
+        
+        curr_date = curr_date + timedelta(days=1)
         print(df)
 else:
     tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en", tweet_mode = 'extended').items(countTweet)
