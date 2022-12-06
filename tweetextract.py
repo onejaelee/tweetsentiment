@@ -29,7 +29,6 @@ accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
 
-
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
@@ -39,7 +38,7 @@ today = date.today()
 #YYYY- MM-DD - use current date to extract tweet
 dateuntil = today.strftime("%Y-%m-%d")
 #Keyword or hashtag to search
-keyword = "mango"
+keyword = "#chainsawman"
 
 
 #quantity of tweets to input PER DAY
@@ -58,7 +57,7 @@ def preprocessTw(tweet):
     return tweetproc
 
 def processTweet(tweets):
-    data = {"Negative":[], "Neutral":[],"Positive":[],"id":[],"created_at":[]}
+    data = {"Negative":[], "Neutral":[],"Positive":[],"id":[],"created_at":[], "text":[]}
     for tweet in tweets:
         #print(tweet.full_text)
         encodedtw = tokenizer(preprocessTw(tweet.full_text), return_tensors = "pt")
@@ -72,8 +71,11 @@ def processTweet(tweets):
         data["Positive"].append(scores[2])
         
         data["id"].append(tweet.id)
+        data["text"].append(tweet.full_text)
         data["created_at"].append(tweet.created_at)
-    return data
+        last_id = tweet.id
+        
+    return data, last_id
 
 
 
@@ -91,7 +93,7 @@ if exists(keyword + "sentiment.pkl"):
         dateuntil = curr_date.strftime("%Y-%m-%d")
         tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
         
-        data = processTweet(tweets)
+        data,last_id = processTweet(tweets)
         df_today = pd.DataFrame(data)
         df_today = df_today.set_index("id")
         
@@ -99,19 +101,20 @@ if exists(keyword + "sentiment.pkl"):
         curr_date = curr_date + timedelta(days=1)
     df.to_pickle(keyword + "sentiment.pkl")
     print(df)
+    
 else:
     curr_date = today - timedelta(days=6)
     dateuntil = curr_date.strftime("%Y-%m-%d")
     tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil, tweet_mode = 'extended').items(countTweet)
-    data = processTweet(tweets)
+    data,last_id = processTweet(tweets)
     df = pd.DataFrame(data)
     df = df.set_index("id")
     curr_date = curr_date + timedelta(days=1)
     while (curr_date <= today):
         dateuntil = curr_date.strftime("%Y-%m-%d")
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil, tweet_mode = 'extended').items(countTweet)
+        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
         
-        data = processTweet(tweets)
+        data, last_id = processTweet(tweets)
         df_today = pd.DataFrame(data)
         df_today = df_today.set_index("id")
         
