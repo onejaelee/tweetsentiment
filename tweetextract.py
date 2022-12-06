@@ -29,6 +29,7 @@ accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
 
+
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
@@ -108,7 +109,7 @@ else:
     curr_date = curr_date + timedelta(days=1)
     while (curr_date <= today):
         dateuntil = curr_date.strftime("%Y-%m-%d")
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
+        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil, tweet_mode = 'extended').items(countTweet)
         
         data = processTweet(tweets)
         df_today = pd.DataFrame(data)
