@@ -14,6 +14,9 @@ import tweepy
 from datetime import date
 from datetime import timedelta
 import time
+
+
+
 #Loading roberta model and tokenizer
 roberta = "cardiffnlp/twitter-roberta-base-sentiment"
 
@@ -28,7 +31,6 @@ APISecret = "consumersecret"
 accessToken = "accesstoken"
 accessTokenSecret = "accesstokensecret"
 
-
 auth = tweepy.OAuthHandler(APIKey, APISecret)
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
@@ -42,8 +44,8 @@ keyword = "#chainsawman"
 
 
 #quantity of tweets to input PER DAY, must be broken down into chunks <=100
-tweetsPerQ= 100
-totalTweets = 1000
+tweetsPerQ= 5
+totalTweets = 10
 
 def preprocessTw(tweet):
     proctweet = []
@@ -65,7 +67,7 @@ def processTweet(tweets):
         output = model(**encodedtw)
         scores = output[0][0].detach().numpy()
         scores = softmax(scores)
-        print(scores)
+        print(scores,tweet.created_at)
         #Add probability scores to corresponding column
         data["Negative"].append(scores[0])
         data["Neutral"].append(scores[1])
@@ -90,12 +92,13 @@ if exists(keyword + "sentiment.pkl"):
     
     curr_date = prev_last_date
     #last_time = max(df.created_at)
-    tweetsDone = 0
+    
     while (curr_date <= today):
         dateuntil = curr_date.strftime("%Y-%m-%d")
+        tweetsDone = 0
         
-        while(totalTweets<tweetsDone):
-            tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets",count=tweetsPerQ, lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items()
+        while(totalTweets>tweetsDone):
+            tweets = api.search_tweets(q= keyword + " -filter:retweets",count=tweetsPerQ, lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended')
             data,last_id = processTweet(tweets)
             df_today = pd.DataFrame(data)
             df_today = df_today.set_index("id")
@@ -113,24 +116,44 @@ else:
     curr_date = today - timedelta(days=6)
     dateuntil = curr_date.strftime("%Y-%m-%d")
     
+    tweetsDone = 0
     
-    tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",count=tweetsPerQ,until = dateuntil, tweet_mode = 'extended').items()
+    tweets = api.search_tweets(q= keyword + " -filter:retweets", lang = "en",count=tweetsPerQ,until = dateuntil, tweet_mode = 'extended')
     data,last_id = processTweet(tweets)
     df = pd.DataFrame(data)
     df = df.set_index("id")
-    
-    
-    
-    curr_date = curr_date + timedelta(days=1)
-    while (curr_date <= today):
-        dateuntil = curr_date.strftime("%Y-%m-%d")
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",count=tweetsPerQ,until = dateuntil,since_id = last_id, tweet_mode = 'extended').items()
-        
-        data, last_id = processTweet(tweets)
+    tweetsDone += tweetsPerQ
+    print("hey")
+    while(totalTweets>tweetsDone):
+        tweets = api.search_tweets(q= keyword + " -filter:retweets",count=tweetsPerQ, lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended')
+        data,last_id = processTweet(tweets)
         df_today = pd.DataFrame(data)
         df_today = df_today.set_index("id")
-        
         df = df.append(df_today)
+        tweetsDone += tweetsPerQ
+        time.sleep(2)
+        print("hello")
+
+    print("what")
+    curr_date = curr_date + timedelta(days=1)
+    #time.sleep(60*16)
+    time.sleep(30)
+    print("the")
+    while (curr_date <= today):
+        dateuntil = curr_date.strftime("%Y-%m-%d")
+        tweetsDone = 0
+        while(totalTweets>tweetsDone):
+            tweets = api.search_tweets( q= keyword + " -filter:retweets",count=tweetsPerQ, lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended')
+            data,last_id = processTweet(tweets)
+            df_today = pd.DataFrame(data)
+            df_today = df_today.set_index("id")
+            df = df.append(df_today)
+            tweetsDone += tweetsPerQ
+            time.sleep(2)
+        
         curr_date = curr_date + timedelta(days=1)
+        time.sleep(30)
+        #time.sleep(60*16)
+        
     df.to_pickle(keyword + "sentiment.pkl")
     print(df)
