@@ -13,7 +13,7 @@ import tweepy
 
 from datetime import date
 from datetime import timedelta
-
+import time
 #Loading roberta model and tokenizer
 roberta = "cardiffnlp/twitter-roberta-base-sentiment"
 
@@ -41,8 +41,9 @@ dateuntil = today.strftime("%Y-%m-%d")
 keyword = "#chainsawman"
 
 
-#quantity of tweets to input PER DAY
-countTweet = 2
+#quantity of tweets to input PER DAY, must be broken down into chunks <=100
+tweetsPerQ= 100
+totalTweets = 1000
 
 def preprocessTw(tweet):
     proctweet = []
@@ -89,30 +90,41 @@ if exists(keyword + "sentiment.pkl"):
     
     curr_date = prev_last_date
     #last_time = max(df.created_at)
+    tweetsDone = 0
     while (curr_date <= today):
         dateuntil = curr_date.strftime("%Y-%m-%d")
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
         
-        data,last_id = processTweet(tweets)
-        df_today = pd.DataFrame(data)
-        df_today = df_today.set_index("id")
+        while(totalTweets<tweetsDone):
+            tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets",count=tweetsPerQ, lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items()
+            data,last_id = processTweet(tweets)
+            df_today = pd.DataFrame(data)
+            df_today = df_today.set_index("id")
+            df = df.append(df_today)
+            tweetsDone += tweetsPerQ
+            time.sleep(2)
         
-        df = df.append(df_today)
         curr_date = curr_date + timedelta(days=1)
+        
+        time.sleep(60*16)
     df.to_pickle(keyword + "sentiment.pkl")
     print(df)
     
 else:
     curr_date = today - timedelta(days=6)
     dateuntil = curr_date.strftime("%Y-%m-%d")
-    tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil, tweet_mode = 'extended').items(countTweet)
+    
+    
+    tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",count=tweetsPerQ,until = dateuntil, tweet_mode = 'extended').items()
     data,last_id = processTweet(tweets)
     df = pd.DataFrame(data)
     df = df.set_index("id")
+    
+    
+    
     curr_date = curr_date + timedelta(days=1)
     while (curr_date <= today):
         dateuntil = curr_date.strftime("%Y-%m-%d")
-        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",until = dateuntil,since_id = last_id, tweet_mode = 'extended').items(countTweet)
+        tweets = tweepy.Cursor(api.search_tweets, q= keyword + " -filter:retweets", lang = "en",count=tweetsPerQ,until = dateuntil,since_id = last_id, tweet_mode = 'extended').items()
         
         data, last_id = processTweet(tweets)
         df_today = pd.DataFrame(data)
